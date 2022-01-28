@@ -106,11 +106,17 @@ public class AuthorizationServerConfig {
 	public OAuth2AuthorizationConsentService authorizationConsentService(JdbcTemplate jdbcTemplate, RegisteredClientRepository registeredClientRepository) {
 		return new JdbcOAuth2AuthorizationConsentService(jdbcTemplate, registeredClientRepository);
 	}
-
+	
 	@Bean
-	public JWKSource<SecurityContext> jwkSource() {
+	public JWKSet jwkSet() {
 		RSAKey rsaKey = Jwks.generateRsa();
 		JWKSet jwkSet = new JWKSet(rsaKey);
+		return jwkSet;
+	}
+
+	@Bean
+	public JWKSource<SecurityContext> jwkSource(JWKSet jwkSet) {
+
 		return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
 	}
 

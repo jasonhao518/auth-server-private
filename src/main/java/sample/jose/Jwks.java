@@ -45,7 +45,7 @@ public final class Jwks {
 		// @formatter:off
 		return new RSAKey.Builder(publicKey)
 				.privateKey(privateKey)
-				.keyID(UUID.randomUUID().toString())
+				.keyID("12345")
 				.build();
 		// @formatter:on
 	}
