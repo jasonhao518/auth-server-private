@@ -15,6 +15,7 @@
  */
 package sample.config;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import com.nimbusds.jose.jwk.JWKSet;
@@ -46,7 +47,9 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.config.ProviderSettings;
+import org.springframework.security.oauth2.server.authorization.config.TokenSettings;
 import org.springframework.security.web.SecurityFilterChain;
+
 
 /**
  * @author Joe Grandja
@@ -86,7 +89,7 @@ public class AuthorizationServerConfig {
 				.scope("manage_my_shopping_lists:vsf-ct-dev")
 				.scope("view_published_products:vsf-ct-dev")
 				.scope("view_stores:vsf-ct-dev")
-				
+				.tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofDays(30)).reuseRefreshTokens(false).refreshTokenTimeToLive(Duration.ofDays(90)).build())
 				.clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
 				.build();
 
@@ -123,7 +126,7 @@ public class AuthorizationServerConfig {
 
 	@Bean
 	public ProviderSettings providerSettings() {
-		return ProviderSettings.builder().issuer("http://auth-server:9000").build();
+		return ProviderSettings.builder().issuer("http://auth-server:9000").tokenEndpoint("/oauth/token").build();
 	}
 
 	@Bean
