@@ -18,12 +18,6 @@ package sample.config;
 import java.time.Duration;
 import java.util.UUID;
 
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.source.JWKSource;
-import com.nimbusds.jose.proc.SecurityContext;
-import sample.jose.Jwks;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -38,6 +32,8 @@ import org.springframework.security.config.annotation.web.configuration.OAuth2Au
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwsEncoder;
 import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
@@ -50,6 +46,14 @@ import org.springframework.security.oauth2.server.authorization.config.ProviderS
 import org.springframework.security.oauth2.server.authorization.config.TokenSettings;
 import org.springframework.security.web.SecurityFilterChain;
 
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
+
+import sample.jose.Jwks;
+
 
 /**
  * @author Joe Grandja
@@ -57,12 +61,17 @@ import org.springframework.security.web.SecurityFilterChain;
  */
 @Configuration(proxyBeanMethods = false)
 public class AuthorizationServerConfig {
-
+	
 	@Bean
 	@Order(Ordered.HIGHEST_PRECEDENCE)
-	public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http,RegisteredClientRepository registeredClientRepository,OAuth2AuthorizationService authorizationService,JwtEncoder jwtEncoder) throws Exception {
 		OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
-		return http.formLogin(Customizer.withDefaults()).build();
+		return http.formLogin(Customizer.withDefaults())
+//				.anonymous().disable()
+//				.addFilterAfter(filter,FilterSecurityInterceptor.class)
+				.authenticationProvider(new OAuth2RefreshTokenAuthenticationProvider(authorizationService,jwtEncoder))
+				.authenticationProvider(new OAuth2ClientAuthenticationProvider(registeredClientRepository,authorizationService))
+				.authenticationProvider(new OAuth2ClientCredentialsAuthenticationProvider(authorizationService,jwtEncoder)).build();
 	}
 
 	// @formatter:off
@@ -120,8 +129,14 @@ public class AuthorizationServerConfig {
 
 	@Bean
 	public JWKSource<SecurityContext> jwkSource(JWKSet jwkSet) {
+		return new ImmutableJWKSet<SecurityContext>(jwkSet);
+//		return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
+	}
+	
+	@Bean
+	public NimbusJwsEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource ) {
 
-		return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
+		return new NimbusJwsEncoder(jwkSource);
 	}
 
 	@Bean
