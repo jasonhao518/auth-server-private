@@ -160,10 +160,10 @@ public final class OAuth2RefreshTokenAuthenticationProvider implements Authentic
 		JwtClaimsSet.Builder claimsBuilder = JwtUtils.accessTokenClaims(
 				registeredClient, issuer, authorization.getPrincipalName(), scopes);
 
-		OAuth2ClientAuthenticationToken principal = null;
+		OfbizAuthenticationToken principal = null;
 		try {
 			String data = authorization.getAttribute(Principal.class.getName());
-			principal = (OAuth2ClientAuthenticationToken) SerializationUtils.deserialize(Base64Utils.decodeFromString(data));
+			principal = (OfbizAuthenticationToken) SerializationUtils.deserialize(Base64Utils.decodeFromString(data));
 
 		}catch(Exception e) {
 			e.printStackTrace();
@@ -183,7 +183,7 @@ public final class OAuth2RefreshTokenAuthenticationProvider implements Authentic
 		this.jwtCustomizer.customize(context);
 
 		JoseHeader headers = context.getHeaders().build();
-		JwtClaimsSet claims = context.getClaims().build();
+		JwtClaimsSet claims = context.getClaims().subject((String) principal.getPrincipal()).build();
 		Jwt jwtAccessToken = this.jwtEncoder.encode(headers, claims);
 
 		OAuth2AccessToken accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER,

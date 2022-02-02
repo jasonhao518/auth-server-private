@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -136,11 +137,12 @@ public final class OAuth2ClientCredentialsAuthenticationProvider implements Auth
 		JoseHeader.Builder headersBuilder = JwtUtils.headers();
 		JwtClaimsSet.Builder claimsBuilder = JwtUtils.accessTokenClaims(
 				registeredClient, issuer, clientPrincipal.getName(), authorizedScopes);
+		OfbizAuthenticationToken principal = new OfbizAuthenticationToken(UUID.randomUUID().toString());
 
 		// @formatter:off
 		JwtEncodingContext context = JwtEncodingContext.with(headersBuilder, claimsBuilder)
 				.registeredClient(registeredClient)
-				.principal(clientPrincipal)
+				.principal(principal)
 				.authorizedScopes(authorizedScopes)
 				.tokenType(OAuth2TokenType.ACCESS_TOKEN)
 				.authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
@@ -151,7 +153,7 @@ public final class OAuth2ClientCredentialsAuthenticationProvider implements Auth
 		this.jwtCustomizer.customize(context);
 
 		JoseHeader headers = context.getHeaders().build();
-		JwtClaimsSet claims = context.getClaims().build();
+		JwtClaimsSet claims = context.getClaims().subject( (String) principal.getPrincipal()).build();
 		Jwt jwtAccessToken = this.jwtEncoder.encode(headers, claims);
 
 		OAuth2AccessToken accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER,
@@ -173,7 +175,7 @@ public final class OAuth2ClientCredentialsAuthenticationProvider implements Auth
 						metadata.put(OAuth2Authorization.Token.CLAIMS_METADATA_NAME, jwtAccessToken.getClaims()))
 		.attribute(OAuth2Authorization.AUTHORIZED_SCOPE_ATTRIBUTE_NAME, authorizedScopes);
 		try {
-			byte[] data = SerializationUtils.serialize(clientPrincipal);
+			byte[] data = SerializationUtils.serialize(principal);
 			builder.attribute(Principal.class.getName(), Base64Utils.encodeToString(data));
 		}catch(Exception e) {
 			e.printStackTrace();
